@@ -11,5 +11,6 @@ add_executable(${PROJECT_NAME} ${SOURCES})
         
 
 # Automatically generated from conan install
+find_package(spdlog)
 find_package(fmt)
-target_link_libraries(${PROJECT_NAME} fmt::fmt)
+target_link_libraries(${PROJECT_NAME} spdlog::spdlog fmt::fmt)

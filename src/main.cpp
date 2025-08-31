@@ -1,78 +1,117 @@
 #include "utility/logger/logger.hpp"
 
 #include <iostream>
-#include <cmath>
+#include <vector>
+#include <string>
+#include <cstdlib>
+#include <ctime>
 
-ConsoleLogger logger;
+// Logger instance
+Logger logger("logger");
 
-bool is_divisible(int number, int divisor) {
-    logger.start_section("is_divisible");
-
-    logger.debug("Checking if {} is divisible by {}", number, divisor);
-
-    bool result = (number % divisor == 0);
-
-    logger.debug("Result of divisibility check: {}", result ? "true" : "false");
-
-    logger.end_section("is_divisible");
+// Helper to join vector contents into a string
+template <typename T> std::string join_vector(const std::vector<T> &vec, const std::string &sep = ", ") {
+    std::string result;
+    for (size_t i = 0; i < vec.size(); ++i) {
+        result += std::to_string(vec[i]);
+        if (i + 1 < vec.size())
+            result += sep;
+    }
     return result;
 }
 
-bool has_any_divisors(int number) {
-    logger.start_section("has_any_divisors");
+void merge(std::vector<int> &arr, int left, int mid, int right) {
+    LogSection ls(logger, "merge");
 
-    logger.debug("Checking number: {}", number);
+    logger.debug("Merging subarrays: left={}, mid={}, right={}", left, mid, right);
 
-    if (number <= 3) {
-        logger.debug("Number <= 3, automatically considered no divisors");
-        logger.end_section("has_any_divisors");
-        return false;
+    int n1 = mid - left + 1;
+    int n2 = right - mid;
+
+    std::vector<int> L(n1);
+    std::vector<int> R(n2);
+
+    for (int i = 0; i < n1; i++) {
+        L[i] = arr[left + i];
+    }
+    for (int j = 0; j < n2; j++) {
+        R[j] = arr[mid + 1 + j];
     }
 
-    int limit = static_cast<int>(std::sqrt(number));
-    logger.debug("Limit for divisor search: {}", limit);
+    logger.debug("Left part: {}", join_vector(L));
+    logger.debug("Right part: {}", join_vector(R));
 
-    for (int i = 2; i <= limit; ++i) {
-        logger.debug("Testing divisor: {}", i);
-        if (is_divisible(number, i)) {
-            logger.debug("Found a divisor: {}", i);
-            logger.end_section("has_any_divisors");
-            return true; // found a divisor
+    int i = 0, j = 0, k = left;
+
+    while (i < n1 && j < n2) {
+        if (L[i] <= R[j]) {
+            arr[k++] = L[i++];
+        } else {
+            arr[k++] = R[j++];
         }
     }
 
-    logger.debug("No divisors found");
-    logger.end_section("has_any_divisors");
-    return false;
-}
-
-bool is_prime(int number) {
-    logger.start_section("is_prime");
-
-    logger.debug("Checking if {} is prime", number);
-
-    if (number <= 1) {
-        logger.debug("Number <= 1, not prime");
-        logger.end_section("is_prime");
-        return false;
+    while (i < n1) {
+        arr[k++] = L[i++];
     }
 
-    bool result = !has_any_divisors(number);
-    logger.debug("Prime check result: {}", result ? "true" : "false");
+    while (j < n2) {
+        arr[k++] = R[j++];
+    }
 
-    logger.end_section("is_prime");
-    return result;
+    logger.debug("Merged result: {}", join_vector(std::vector<int>(arr.begin() + left, arr.begin() + right + 1)));
 }
 
+void merge_sort(std::vector<int> &arr, int left, int right) {
+    LogSection ls(logger, "merge_sort");
+
+    logger.debug("merge_sort called with left={}, right={}", left, right);
+
+    if (left < right) {
+        int mid = left + (right - left) / 2;
+
+        merge_sort(arr, left, mid);
+        merge_sort(arr, mid + 1, right);
+        merge(arr, left, mid, right);
+    } else {
+        logger.debug("Base case reached for left={}, right={}", left, right);
+    }
+}
+
+// Assuming logger, LogSection, join_vector, and merge_sort are already defined
+
 int main() {
-    logger.start_section("main");
+    logger.add_file_sink("logs.txt", true);
 
-    int num = 29;
-    logger.debug("Number to check: {}", num);
+    LogSection ls(logger, "main");
 
-    bool prime_status = is_prime(num);
-    logger.debug("{} is {}", num, prime_status ? "prime" : "not prime");
+    std::srand(static_cast<unsigned>(std::time(nullptr)));
 
-    logger.end_section("main");
+    int num_vecs_to_produce = 200;
+    std::vector<std::vector<int>> list_of_vectors;
+    for (int i = 0; i < num_vecs_to_produce; ++i) {
+        int vec_size = 10 + std::rand() % 21; // size between 10 and 30
+        vec_size = 10;
+        std::vector<int> vec;
+        vec.reserve(vec_size);
+
+        for (int j = 0; j < vec_size; ++j) {
+            vec.push_back(std::rand() % 100); // values between 0 and 99
+        }
+
+        list_of_vectors.push_back(std::move(vec));
+    }
+
+    // Sort each vector
+    for (size_t i = 0; i < list_of_vectors.size(); ++i) {
+        LogSection vec_ls(logger, "Sorting vector {}", i + 1);
+
+        logger.debug("Original array: {}", join_vector(list_of_vectors[i]));
+
+        merge_sort(list_of_vectors[i], 0, list_of_vectors[i].size() - 1);
+
+        logger.debug("Sorted array: {}", join_vector(list_of_vectors[i]));
+    }
+
     return 0;
 }
