@@ -87,7 +87,7 @@ int main() {
 
     std::srand(static_cast<unsigned>(std::time(nullptr)));
 
-    int num_vecs_to_produce = 200;
+    int num_vecs_to_produce = 1;
     std::vector<std::vector<int>> list_of_vectors;
     for (int i = 0; i < num_vecs_to_produce; ++i) {
         int vec_size = 10 + std::rand() % 21; // size between 10 and 30
@@ -111,6 +111,21 @@ int main() {
         merge_sort(list_of_vectors[i], 0, list_of_vectors[i].size() - 1);
 
         logger.debug("Sorted array: {}", join_vector(list_of_vectors[i]));
+    }
+
+    {
+        LogSection _(logger, "indentation_test");
+        logger.debug("debug");
+        logger.info("info");
+        logger.error("error");
+        logger.trace("trace");
+        logger.warn("warn");
+        logger.critical("critical");
+    }
+
+    {
+        LogSection _(logger, "multiline logging test");
+        logger.debug("line_one\nline_two");
     }
 
     return 0;
